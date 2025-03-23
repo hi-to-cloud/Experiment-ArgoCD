@@ -1,0 +1,23 @@
+minikube start
+minikube status
+kubectl get nodes
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get svc -n argocd
+kubectl edit svc argocd-server -n argocd ..> NodePort
+kubectl get svc -n argocd
+minikube service list
+minikube service argocd-server -n argocd
+
+https://127.0.0.1:49526/applications
+
+CLI 
+---
+argocd login 127.0.0.1:49628
+WARNING: server certificate had error: tls: failed to verify certificate: x509: certificate signed by unknown authority. Proceed insecurely (y/n)? y
+Username: admin
+Password: 
+'admin:login' logged in successfully
+Context '127.0.0.1:49628' updated
+
+kubectl get application -n argocd

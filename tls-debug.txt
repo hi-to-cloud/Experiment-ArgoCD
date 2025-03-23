@@ -1,0 +1,53 @@
+Step's:
+- create ingress with tls specified
+- certificate manager will identify it -- create certificate -- generate private key stores in k8s secret's
+- certificate will create certificateRequest stored as k8s resource 
+- certificateRequest will create Order -- will create challange (http/dns) -- get public certificate (90 days validity)
+- every 60 days certificate will renew it.
+
+kubectl get clusterissuer -n cert-manager
+```
+NAME               READY   AGE
+letsencrypt-prod   True    2m23s
+```
+
+Challange's
+------------
+- HTTP-01
+1. kubectl get certificate -n argocd
+```
+NAME               READY   SECRET             AGE
+letsencrypt-prod   False    letsencrypt-prod   12m
+```
+2. kubectl describe certificate letsencrypt-prod -n argocd
+3. kubectl get CertificateRequest -n argocd
+```
+NAME                 APPROVED   DENIED   READY   ISSUER             REQUESTER                                         AGE
+letsencrypt-prod-1   True                False   letsencrypt-prod   system:serviceaccount:cert-manager:cert-manager   11m
+```
+4. kubectl describe CertificateRequest letsencrypt-prod-1 -n argocd
+```
+Normal  cert-manager.io     13m   cert-manager-certificaterequests-approver           Certificate request has been approved by cert-manager.io
+Normal  OrderCreated        13m   cert-manager-certificaterequests-issuer-acme        Created Order resource argocd/letsencrypt-prod-1-268471604
+Normal  OrderPending        13m   cert-manager-certificaterequests-issuer-acme        Waiting on certificate issuance from order argocd/letsencrypt-prod-1-268471604: ""
+```
+5. kubectl get Order -n argocd 
+```
+NAME                           STATE     AGE
+letsencrypt-prod-1-268471604   pending   18m
+```
+6. kubectl describe Order letsencrypt-prod-1-268471604 -n argocd
+7. kubectl get Challenge -n argocd
+```
+NAME                                      STATE     DOMAIN           AGE
+letsencrypt-prod-1-268471604-1347828793   pending   lookatme.space   26m
+```
+8. kubectl describe challenge letsencrypt-prod-1-268471604-1347828793 -n argocd ..> here we find main reason, add it to route53
+9. kubectl get certificate -n argocd
+```
+NAME               READY   SECRET             AGE
+letsencrypt-prod   True    letsencrypt-prod   20m
+```
+
+TODO:
+- DNS-01

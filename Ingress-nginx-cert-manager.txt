@@ -1,0 +1,141 @@
+Why Ingress?
+- K8S cluster: 
+    - deploy application as pod
+    - expose application as service
+
+- Service Types:
+    - ClusterIP: Access Internal to cluster
+    - NodePort: Access Internal to Organization
+    - LoadBalancer: Access throughout Internet(Public)
+
+Type: LoadBalancer
+- Costly
+- Depond on cloud Provider (Ex: for AWS use only alb,nlb. can't use nginx, f5, cisco lb's)
+- compromise on security (Ex: can't restrict much, need to use cloud provider's security)
+
+VM: Deployed application
+------------------------
+- LB
+- API Gateway
+- DDOS attack
+- Whitelist, Blacklist IP's
+- WAF
+-- More Flexibility, Lack in world of K8S
+
+--**--Ingress--**-- Solved above Problems
+- In general: ingress is inbound traffic to application/cluster
+
+3 Things we need to understand
+------------------------------
+- Ingress Controller
+- Ingress yaml
+- LB 
+
+Flow:
+-----
+Ingress yaml --read by-- Ingress controller --create-- LB 
+
+Architect Decided: nginx as LB
+Ex: 
+Ingress yaml: nginx -- written by us 
+Ingress controller: nginx -- written by nginx 
+LB: nginx
+
+Note: by default Type: LoadBalancer will provide LB?
+- LB created by cloud provider is classic LB(less functionality)
+
+Create EKS CLuster
+------------------
+eksctl create cluster -f cluster.yml
+
+Install Application
+-------------------
+kubectl apply -f manifest/
+
+Install Nginx Controller by K8S
+-------------------------------
+Note: 2 nginx-controllers
+- developed by nginx 
+- developed by kubernetes
+https://kubernetes.github.io/ingress-nginx/deploy/#aws
+
+Install ArgoCD
+--------------
+https://argo-cd.readthedocs.io/en/stable/getting_started/
+
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+kubectl get all -n argocd
+
+kubectl apply -f ingress-nginx.yml
+*- nginx will create nlb.
+
+kubectl get configmap -n argocd
+kubectl edit cm argocd-cmd-params-cm -n argocd
+
+kubectl -n argocd get configmap argocd-cmd-params-cm -o yaml | grep server.insecure
+server.insecure: "true"
+
+kubectl -n argocd rollout restart deployment argocd-server
+
+argocd login argocd.lookatme.space
+argocd app list
+
+kubectl apply -f manifest/argo-app.yml
+argocd app list
+
+kubectl describe app guestbook-ui
+
+Install cert-manager
+https://cert-manager.io/docs/installation/kubectl/
+
+Step1:
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+
+kubectl get pods --namespace cert-manager
+
+Step2:
+create issuers, clusterissuers: k8s objects will generate & sign certificates
+
+kubectl apply -f nginx-tls/cert-issuer.yml  
+```
+issuer.cert-manager.io/letsencrypt-prod created
+```
+
+kubectl get clusterissuer -n cert-manager
+```
+NAME               READY   AGE
+letsencrypt-prod   True    2m51s
+```
+
+Step3:
+update ingress-nginx.yml
+```
+annotations:
+    cert-manager.io/clusterissuer: "letsencrypt-prod"
+
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - example.example.com
+    secretName: letsencrypt-prod
+```
+kubectl apply -f nginx-tls/ingress-nginx.yml 
+
+
+kubectl describe ing guestbook-ui -n argocd
+
+kubectl get certificate -n argocd
+```
+NAME               READY   SECRET             AGE
+letsencrypt-prod   True    letsencrypt-prod   12m
+```
+
+kubectl get certificaterequest -n argocd
+```
+NAME                 APPROVED   DENIED   READY   ISSUER             REQUESTER                                         AGE
+letsencrypt-prod-1   True                True    letsencrypt-prod   system:serviceaccount:cert-manager:cert-manager   4m38s
+```
+

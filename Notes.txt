@@ -1,0 +1,6 @@
+AWS ALB does not support cert-manager, you have to go to AWS ACM.
+ArgoCD with Ingress(HTTP) will not able to login with CLI because it uses grpc(L4) but alb(L7)
+
+eksctl create cluster -f cluster.yml
+
+eksctl delete cluster -f cluster.yml

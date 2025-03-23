@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook-ui
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: myalias=gcr.io/heptio-images/ks-guestbook-demo      
+    argocd-image-updater.argoproj.io/git-branch: main                                          
+    argocd-image-updater.argoproj.io/myalias.force-update: "true"
+spec:
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  source:
+    repoURL: 'https://github.com/hi-to-cloud/k8s-yamls.git'
+    path: ./guestbook
+    targetRevision: HEAD
+    directory:
+      recurse: true
+  project: default
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

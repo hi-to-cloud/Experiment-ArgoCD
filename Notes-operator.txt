@@ -1,0 +1,45 @@
+Install ArgoCD using Operatorhub
+- https://operatorhub.io/operator/argocd-operator
+
+```
+curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.31.0/install.sh | bash -s v0.31.0
+kubectl create -f https://operatorhub.io/install/argocd-operator.yaml
+kubectl get csv -n operators
+```
+
+kubectl get pods -n operators
+
+kubectl create ns argocd
+
+https://argocd-operator.readthedocs.io/en/latest/usage/basics/
+```
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: lookatme-argocd
+  namespace: argocd
+  labels:
+    example: lookatme
+spec:
+  server:
+    service:
+      type: NodePort
+```
+
+minikube service list
+
+minikube service lookatme-argocd-server -n argocd
+
+Starting tunnel for service lookatme-argocd-server.
+|-----------|------------------------|-------------|------------------------|
+| NAMESPACE |          NAME          | TARGET PORT |          URL           |
+|-----------|------------------------|-------------|------------------------|
+| argocd    | lookatme-argocd-server |             | http://127.0.0.1:50046 |
+|           |                        |             | http://127.0.0.1:50047 |
+|-----------|------------------------|-------------|------------------------|
+
+
+kubectl edit secret lookatme-argocd-cluster -n argocd
+
+echo R3NtRXFCQVBXVHdJbGRpVTNhSDk2alFaeTBjZll2OHQ= | base64 --decode
+GsmEqBAPWTwIldiU3aH96jQZy0cfYv8t

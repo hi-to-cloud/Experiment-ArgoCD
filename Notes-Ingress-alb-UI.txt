@@ -1,0 +1,123 @@
+Step1:
+- lookatme-k8s
+
+Step2:
+kubectl config get-contexts
+```
+CURRENT   NAME                                      CLUSTER                                AUTHINFO                                  NAMESPACE
+          M4@lookatme-k8s-2.us-west-1.eksctl.io     lookatme-k8s-2.us-west-1.eksctl.io     M4@lookatme-k8s-2.us-west-1.eksctl.io     
+*         M4@lookatme-k8s-3.us-east-1.eksctl.io     lookatme-k8s-3.us-east-1.eksctl.io     M4@lookatme-k8s-3.us-east-1.eksctl.io     
+          M4@lookatme-k8s.us-west-1.eksctl.io       lookatme-k8s.us-west-1.eksctl.io       M4@lookatme-k8s.us-west-1.eksctl.io       
+```
+
+Step3:
+kubectl config use-context M4@lookatme-k8s.us-west-1.eksctl.io
+```
+Switched to context "M4@lookatme-k8s.us-west-1.eksctl.io".
+```
+
+Step4:
+kubectl config current-context
+
+Step5:
+https://argo-cd.readthedocs.io/en/stable/getting_started/
+
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+Step6:
+kubectl get all -n argocd
+
+Step7: server.insecure: "true"? So that we can access ArgoCD UI as HTTP.
+https://github.com/argoproj/argo-cd/blob/20b1870d7504c3ce115c59f02ad9e174313ec579/docs/operator-manual/argocd-cmd-params-cm.yaml#L108
+
+kubectl get configmap -n argocd
+kubectl edit cm argocd-cmd-params-cm -n argocd
+```
+configmap/argocd-cmd-params-cm edited
+```
+
+Step8:
+kubectl -n argocd get configmap argocd-cmd-params-cm -o yaml | grep server.insecure
+server.insecure: "true"
+
+kubectl describe deploy argocd-server -n argocd | grep insecure
+      ARGOCD_SERVER_INSECURE:                                         <set to the key 'server.insecure' of config map 'argocd-cmd-params-cm'>                                        Optional: true
+      ARGOCD_SERVER_OTLP_INSECURE:                                    <set to the key 'otlp.insecure' of config map 'argocd-cmd-params-cm'>                                          Optional: true
+
+Step9:
+kubectl -n argocd rollout restart deployment argocd-server
+
+Step10:
+OIDC-Connector.txt
+
+Step11: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.2/deploy/installation/
+Create IAM Policy 
+```
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/docs/install/iam_policy.json
+```
+```
+aws iam create-policy \
+    --policy-name AWSLoadBalancerControllerIAMPolicy \
+    --policy-document file://iam_policy.json
+```
+
+Step12:
+```
+eksctl create iamserviceaccount \
+--cluster=lookatme-k8s \
+--region us-west-1 \
+--namespace=kube-system \
+--name=aws-load-balancer-controller \
+--attach-policy-arn=arn:aws:iam::535002862283:policy/AWSLoadBalancerControllerIAMPolicy \
+--override-existing-serviceaccounts \
+--approve
+```
+
+Step13:
+```
+helm repo add eks https://aws.github.io/eks-charts
+```
+```
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system --set clusterName=lookatme-k8s --set serviceAccount.create=false --set serviceAccount.name=aws-load-balancer-controller
+```
+
+```
+kubectl get pods -n kube-system
+```
+
+Step14:
+kubectl apply -f alb-80/ingress.yaml 
+
+kubectl get ingress -n argocd
+NAME            CLASS   HOSTS            ADDRESS                                                                PORTS   AGE
+argocd-server   alb     lookatme.space   k8s-argocd-argocdse-d602a61110-300738383.us-west-1.elb.amazonaws.com   80      157m
+
+Step15:
+Add Route53 Record
+
+Step16:
+lookatme.space
+
+Debug"
+https://www.whatsmydns.net/#A/lookatme.space
+
+Step17:
+kubectl get secrets -n argocd | grep initial
+argocd-initial-admin-secret   Opaque   1      170m
+
+Step18:
+username: admin 
+password: ?
+kubectl describe secret -n argocd
+
+kubectl edit secret argocd-initial-admin-secret -n argocd
+
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+Step19:
+echo RG5rR3pVU09LVDhSY3p5OA== | base64 --decode
+DnkGzUSOKT8Rczy8%
+
+Step20:
+http://lookatme.space -- we see login page of ArgoCD

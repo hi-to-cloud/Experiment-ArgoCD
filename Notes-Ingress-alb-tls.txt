@@ -1,0 +1,43 @@
+Step1:
+lookatme/00.Create-Cluster.md
+
+Step2:
+lookatme/01.OIDC-Connector.md
+
+Step3:
+lookatme/02.Setup-ALB.md
+
+Step4:
+lookatme/03.Install-ArgoCD.md
+
+Step5:
+- Create a Certificate in AWS Certificate Manager with domain(lookatme.space)
+- ACM will have option to Add CNAME to R53 Record
+
+Step6:
+lookatme/04.Setup-grpc-ing.md
+
+Step7:
+- Create Record in R53 with alias as ALB 
+
+Step8:
+https://lookatme.space/
+
+Step9:
+argocd login lookatme.space 
+```
+WARN[0004] Failed to invoke grpc call. Use flag --grpc-web in grpc calls. To avoid this warning message, use flag --grpc-web. 
+Username: admin
+Password: 
+'admin:login' logged in successfully
+Context 'lookatme.space' updated
+```
+
+Step10:
+kubectl apply -f manifest/argo-app.yml
+
+argocd app list
+```
+NAME                 CLUSTER                         NAMESPACE  PROJECT  STATUS  HEALTH   SYNCPOLICY  CONDITIONS  REPO                                          PATH         TARGET
+argocd/guestbook-ui  https://kubernetes.default.svc  default    default  Synced  Healthy  Auto        <none>      https://github.com/hi-to-cloud/k8s-yamls.git  ./guestbook  HEAD
+```

@@ -1,0 +1,143 @@
+Create 3 Clusters
+- lookatme-k8s
+- lookatme-k8s-2
+- lookatme-k8s-3
+
+Step1:
+- lookatme-k8s
+Install ArgoCD 
+
+Step2:
+kubectl config get-contexts
+```
+CURRENT   NAME                                      CLUSTER                                AUTHINFO                                  NAMESPACE
+          M4@lookatme-k8s-2.us-west-1.eksctl.io     lookatme-k8s-2.us-west-1.eksctl.io     M4@lookatme-k8s-2.us-west-1.eksctl.io     
+*         M4@lookatme-k8s-3.us-east-1.eksctl.io     lookatme-k8s-3.us-east-1.eksctl.io     M4@lookatme-k8s-3.us-east-1.eksctl.io     
+          M4@lookatme-k8s.us-west-1.eksctl.io       lookatme-k8s.us-west-1.eksctl.io       M4@lookatme-k8s.us-west-1.eksctl.io       
+```
+
+Step3:
+kubectl config use-context M4@lookatme-k8s.us-west-1.eksctl.io
+```
+Switched to context "M4@lookatme-k8s.us-west-1.eksctl.io".
+```
+
+Step4:
+kubectl config current-context
+
+Step5:
+https://argo-cd.readthedocs.io/en/stable/getting_started/
+
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+Step6:
+kubectl get all -n argocd
+
+Step7: server.insecure: "true"? So that we can access ArgoCD UI as HTTP.
+https://github.com/argoproj/argo-cd/blob/20b1870d7504c3ce115c59f02ad9e174313ec579/docs/operator-manual/argocd-cmd-params-cm.yaml#L108
+
+kubectl get configmap -n argocd
+kubectl edit cm argocd-cmd-params-cm -n argocd
+```
+data:
+    server.insecure: "true"
+```
+
+Step8:
+kubectl -n argocd get configmap argocd-cmd-params-cm -o yaml | grep server.insecure
+server.insecure: "true"
+
+kubectl describe deploy argocd-server -n argocd | grep insecure
+      ARGOCD_SERVER_INSECURE:                                         <set to the key 'server.insecure' of config map 'argocd-cmd-params-cm'>                                        Optional: true
+      ARGOCD_SERVER_OTLP_INSECURE:                                    <set to the key 'otlp.insecure' of config map 'argocd-cmd-params-cm'>                                          Optional: true
+
+Step9:
+kubectl -n argocd rollout restart deployment argocd-server
+
+Step10:
+kubectl edit svc argocd-server -n argocd
+
+kubectl get svc -n argocd | grep argocd-server
+argocd-server                             NodePort    10.100.177.253   <none>        80:30282/TCP,443:31467/TCP   5h11m
+
+Step11:
+Open Port on EC2 SG: 30282
+
+Step12:
+http://13.56.251.126:30282/ -- see ArgoCD UI 
+
+Step13:
+kubectl get secrets -n argocd | grep initial
+argocd-initial-admin-secret   Opaque   1      170m
+
+Step14:
+username: admin 
+password: ?
+kubectl describe secret -n argocd
+
+kubectl edit secret argocd-initial-admin-secret -n argocd
+
+Step15:
+echo RG5rR3pVU09LVDhSY3p5OA== | base64 --decode
+DnkGzUSOKT8Rczy8
+
+Step16:
+Map any EC2 IP with DNS(Not required)
+
+Step17:
+Add Clusters? Not Possible with UI because of security reasons.
+
+Install ArgoCD CLI 
+- brew install argocd 
+
+kubectl config get-contexts
+CURRENT   NAME                                      CLUSTER                                AUTHINFO                                  NAMESPACE
+          M4@lookatme-k8s-2.us-west-1.eksctl.io     lookatme-k8s-2.us-west-1.eksctl.io     M4@lookatme-k8s-2.us-west-1.eksctl.io     
+          M4@lookatme-k8s-3.us-east-1.eksctl.io     lookatme-k8s-3.us-east-1.eksctl.io     M4@lookatme-k8s-3.us-east-1.eksctl.io     
+*         M4@lookatme-k8s.us-west-1.eksctl.io       lookatme-k8s.us-west-1.eksctl.io       M4@lookatme-k8s.us-west-1.eksctl.io 
+
+
+Step18:
+argocd login lookatme.space:30282
+
+argocd login 13.56.251.126:30282
+WARNING: server is not configured with TLS. Proceed (y/n)? y
+Username: admin
+Password: 
+'admin:login' logged in successfully
+Context '13.56.251.126:30282' updated
+
+Step19:
+argocd cluster add M4@lookatme-k8s-2.us-west-1.eksctl.io --server 13.56.251.126:30282
+```
+WARNING: This will create a service account `argocd-manager` on the cluster referenced by context `M4@lookatme-k8s-2.us-west-1.eksctl.io` with full cluster level privileges. Do you want to continue [y/N]? y
+INFO[0003] ServiceAccount "argocd-manager" created in namespace "kube-system" 
+INFO[0004] ClusterRole "argocd-manager-role" created    
+INFO[0004] ClusterRoleBinding "argocd-manager-role-binding" created 
+INFO[0005] Created bearer token secret for ServiceAccount "argocd-manager" 
+Cluster 'https://3ABB8F5034957FBFC1A4DD774275942B.sk1.us-west-1.eks.amazonaws.com' added
+```
+
+argocd cluster add M4@lookatme-k8s-3.us-east-1.eksctl.io --server 13.56.251.126:30282
+```
+WARNING: This will create a service account `argocd-manager` on the cluster referenced by context `M4@lookatme-k8s-3.us-east-1.eksctl.io` with full cluster level privileges. Do you want to continue [y/N]? y
+INFO[0003] ServiceAccount "argocd-manager" created in namespace "kube-system" 
+INFO[0003] ClusterRole "argocd-manager-role" created    
+INFO[0003] ClusterRoleBinding "argocd-manager-role-binding" created 
+INFO[0004] Created bearer token secret for ServiceAccount "argocd-manager" 
+Cluster 'https://3947554340A0E3D7643B9FCDAF78A2D2.sk1.us-east-1.eks.amazonaws.com' added
+```
+
+Step20:
+Create App Manually inside ArgoCD UI 
+
+Step21:
+kubectl config get-contexts
+
+kubectl config use-context M4@lookatme-k8s-2.us-west-1.eksctl.io
+
+Step22:
+kubectl get pods
+NAME                            READY   STATUS    RESTARTS   AGE
+guestbook-ui-649789b49c-qk2tn   1/1     Running   0          2m58s
