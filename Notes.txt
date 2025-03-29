@@ -4,3 +4,26 @@ ArgoCD with Ingress(HTTP) will not able to login with CLI because it uses grpc(L
 eksctl create cluster -f cluster.yml
 
 eksctl delete cluster -f cluster.yml
+
+Ingress Controller
+------------------
+If we want give internet access to our app running in K8 we have to provison ingress controller. 
+We are using ALB as our ingress controller. We installed aws load balancer controller drivers through helm charts and given appropriate permissions.
+
+Classic LB:
+    - not intelligent
+    - can't route traffic to different target group
+    - it is not recommend by AWS
+
+ALB:
+    - its intelligent
+    - it route traffic to multiple target groups based on host or context rules
+    - it workson layer-7 
+
+
+Step1: create OIDC 
+Step2: create Policy
+Step3: create IAM Role & K8s service account
+Step4: add helm repo
+Step5: install aws-load-balancer-controller 
+Step6: create ingress resource
